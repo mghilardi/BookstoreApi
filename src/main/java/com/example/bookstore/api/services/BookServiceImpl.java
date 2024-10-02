@@ -5,10 +5,11 @@ import com.example.bookstore.api.entities.BookEntity;
 import com.example.bookstore.api.exception.ErrorMessages;
 import com.example.bookstore.api.exception.ResourceNotFoundException;
 import com.example.bookstore.api.repositories.BookRepository;
+import com.example.bookstore.api.services.mappers.BookMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,32 +21,38 @@ import java.util.stream.Collectors;
 public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
+    private final BookMapper bookMapper;
 
     @Autowired
-    public BookServiceImpl(final BookRepository bookRepository) {
+    public BookServiceImpl(final BookRepository bookRepository, BookMapper bookMapper) {
         this.bookRepository = bookRepository;
+        this.bookMapper = bookMapper;
     }
 
     @Override
     @Transactional(rollbackOn = Exception.class)
     public Book save(final Book book) {
-        final BookEntity bookEntity = bookToBookEntity(book);
+        final BookEntity bookEntity = bookMapper.bookToBookEntity(book);
         final BookEntity savedBookEntity = bookRepository.save(bookEntity);
-        return bookEntityToBook(savedBookEntity);
+        return bookMapper.bookEntityToBook(savedBookEntity);
     }
 
     @Override
     public Optional<Book> findById(Long id) {
         final Optional<BookEntity> foundBook = Optional.ofNullable(bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.ERROR_BOOK_NOT_FOUND + id)));
-        return foundBook.map(this::bookEntityToBook);
+                                                                                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.NOT_EXIST_WITH_ID + id)));
+        Book book = bookMapper.bookEntityToBook(foundBook.get());
+        return Optional.of(book);
     }
 
 
     @Override
     public List<Book> listBooks() {
-        final List<BookEntity> foundBooks = bookRepository.findAll();
-        return foundBooks.stream().map(this::bookEntityToBook).collect(Collectors.toList());
+        final List<BookEntity> foundBooks = bookRepository.findAll(Sort.by(Sort.Direction.ASC, "title")
+                                                                       .and(Sort.by(Sort.Direction.ASC, "author")));
+        return foundBooks.stream()
+                         .map(bookMapper::bookEntityToBook)
+                         .collect(Collectors.toList());
     }
 
     @Override
@@ -55,21 +62,9 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public void deleteById(Long id) {
-        try {
-            bookRepository.deleteById(id);
-
-        } catch (final EmptyResultDataAccessException ex) {
-            log.debug("Attempted to delete non-existing book", ex);
-        }
+        bookRepository.deleteById(id);
     }
 
-    public BookEntity bookToBookEntity(Book book) {
-        return BookEntity.builder().id(book.getId()).isbn(book.getIsbn()).title(book.getTitle()).author(book.getAuthor()).price(book.getPrice()).quantity(book.getQuantity()).description(book.getDescription()).build();
-    }
-
-    public Book bookEntityToBook(BookEntity bookEntity) {
-        return Book.builder().id(bookEntity.getId()).isbn(bookEntity.getIsbn()).title(bookEntity.getTitle()).author(bookEntity.getAuthor()).price(bookEntity.getPrice()).quantity(bookEntity.getQuantity()).description(bookEntity.getDescription()).build();
-    }
 }
 
 

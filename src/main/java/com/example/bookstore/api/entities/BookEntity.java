@@ -1,6 +1,5 @@
 package com.example.bookstore.api.entities;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -10,14 +9,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonInclude(NON_NULL)
 @Entity
 @Table(name = "books")
 public class BookEntity {
@@ -40,4 +38,8 @@ public class BookEntity {
     private BigDecimal price;
     private int quantity;
     private String description;
+
+    @ManyToMany(mappedBy = "books")
+    List<OrderEntity> orders = new ArrayList<>();
+    
 }
