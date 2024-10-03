@@ -8,7 +8,7 @@ For building and running the application you need:
 - Maven 3
 - PostgreSQL
 
-To start the api, in the project root directory, run:
+### To start the api, in the project root directory, run:
 
 #### `mvn spring-boot:run`
 
